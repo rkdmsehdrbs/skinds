@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>SkinClash - 스마트 스킨케어 헬스케어 대시보드</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Pretendard', sans-serif; background-color: #f6f7fb; }
+        #weather-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+        .indigo-purple-gradient {
+            background: linear-gradient(125deg, #5b4cf5 0%, #7c4dff 55%, #9353ff 100%);
+        }
+    </style>
+</head>
+<body class="bg-[#f6f7fb] text-slate-800">
+
+    <div class="flex h-screen overflow-hidden">
+        
+        <!-- 사이드바 네비게이션 -->
+        <aside class="w-72 bg-white border-r border-indigo-100 flex flex-col shadow-xs">
+            <div class="p-6 border-b border-indigo-50 flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-[#5b4cf5] flex items-center justify-center text-white font-black text-xl shadow-md shadow-indigo-600/20">🌿</div>
+                <div>
+                    <h1 class="font-extrabold text-slate-900 text-base">SkinClash</h1>
+                    <p class="text-xs text-[#5b4cf5] font-bold">스마트 스킨케어 헬스케어</p>
+                </div>
+            </div>
+            
+            <div class="p-4 border-b border-indigo-50 bg-indigo-50/30">
+                <p class="text-[11px] font-bold text-slate-400 mb-2 px-2">관리 중인 피부 프로필</p>
+                <div class="flex items-center gap-3 bg-white p-3 rounded-2xl border border-indigo-100 shadow-xs">
+                    <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-lg">👩🏻</div>
+                    <div class="flex-1 min-w-0">
+                        <p id="sidebar-user-name" class="font-bold text-slate-800 text-sm truncate">박가은님</p>
+                        <p id="sidebar-user-status" class="text-[11px] text-[#5b4cf5] font-medium">민감성 / 3년차 유저</p>
+                    </div>
+                </div>
+            </div>
+            
+            <nav class="flex-1 p-4 space-y-1.5 overflow-y-auto">
+                <button onclick="switchTab('home', this)" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-[#5b4cf5] text-white font-bold shadow-sm shadow-indigo-600/20 transition">
+                    <span>🏠</span> 홈 대시보드
+                </button>
+                <button onclick="switchTab('vanity', this)" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-600 hover:bg-indigo-50 font-semibold transition">
+                    <span>🧴</span> 나의 화장대 <span class="ml-auto bg-indigo-100 text-indigo-700 text-xs px-2 py-0.5 rounded-full font-bold">5</span>
+                </button>
+                <button onclick="switchTab('conflict', this)" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-600 hover:bg-indigo-50 font-semibold transition">
+                    <span>⚖️</span> 성분 교차 진단 <span class="ml-auto bg-rose-100 text-rose-600 text-xs px-2 py-0.5 rounded-full font-bold">1건 주의</span>
+                </button>
+                <button onclick="switchTab('expiry', this)" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-600 hover:bg-indigo-50 font-semibold transition">
+                    <span>⏳</span> 유통기한·산화 관리 <span class="ml-auto bg-amber-100 text-amber-700 text-xs px-2 py-0.5 rounded-full font-bold">임박 1</span>
+                </button>
+                <button onclick="switchTab('weather', this)" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-600 hover:bg-indigo-50 font-semibold transition">
+                    <span>🌤️</span> 날씨 연동 AM/PM 루틴
+                </button>
+                <button onclick="switchTab('chat', this)" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-600 hover:bg-indigo-50 font-semibold transition">
+                    <span>💬</span> AI 피부 챗봇 문의 <span class="ml-auto bg-indigo-100 text-[#5b4cf5] text-xs px-2 py-0.5 rounded-full font-bold">NEW</span>
+                </button>
+            </nav>
+
+            <div class="p-4 border-t border-indigo-50">
+                <div class="bg-indigo-50/60 p-3.5 rounded-2xl text-xs text-indigo-950 border border-indigo-100">
+                    <p class="font-bold mb-1 flex items-center gap-1.5"><span>✨</span> 프리미엄 멤버십</p>
+                    AI 성분 파싱 및 실시간 알림 활성화
+                </div>
+            </div>
+        </aside>
+
+        <!-- 메인 콘텐츠 영역 -->
+        <main class="relative flex-1 flex flex-col overflow-y-auto bg-[#f6f7fb]">
+            
+            <canvas id="weather-canvas"></canvas>
+
+            <!-- 상단 헤더 -->
+            <header class="h-16 bg-white border-b border-indigo-100 px-8 flex items-center justify-between shadow-xs z-20">
+                <div class="flex items-center gap-4">
+                    <h2 id="header-title" class="text-lg font-extrabold text-slate-900">홈 대시보드</h2>
+                    <span class="bg-indigo-50 text-[#5b4cf5] border border-indigo-200 text-xs px-3 py-1 rounded-full font-bold">MY HEALTHCARE STUDIO</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="hidden xl:inline text-xs font-bold text-slate-500">오늘 날짜: <span class="text-[#5b4cf5]">2026. 11. 19 (목)</span></span>
+
+                    <!-- 로그인 전 버튼 -->
+                    <button id="header-login-btn" onclick="openLoginModal()" class="bg-white hover:bg-indigo-50 text-[#5b4cf5] border border-indigo-200 px-3.5 py-2 rounded-xl text-xs font-bold transition">
+                        로그인하기
+                    </button>
+
+                    <!-- 로그인 후 배지 -->
+                    <div id="header-user-badge" class="hidden items-center gap-2 bg-indigo-50 border border-indigo-200 px-3.5 py-1.5 rounded-xl">
+                        <span class="w-2 h-2 rounded-full bg-[#5b4cf5]"></span>
+                        <span id="header-user-name" class="text-xs font-extrabold text-indigo-950">박가은님</span>
+                        <button onclick="logoutUser()" class="text-[11px] font-semibold text-slate-500 hover:text-rose-600 ml-1 transition">
+                            로그아웃
+                        </button>
+                    </div>
+
+                    <button onclick="alert('화장품 전성분 카메라 OCR 스캔이 실행됩니다!')" class="bg-[#5b4cf5] hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-sm shadow-indigo-600/20 transition">
+                        + 화장품 등록 / OCR
+                    </button>
+                </div>
+            </header>
+
+            <!-- 탭별 콘텐츠 영역 -->
+            <div class="p-8 max-w-7xl mx-auto w-full space-y-6 z-20">
+                
+                <!-- [탭 1] 홈 대시보드 -->
+                <div id="tab-home" class="tab-content space-y-6">
+                    <div class="indigo-purple-gradient rounded-3xl p-8 text-white shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                        <div>
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="bg-white/20 text-white text-xs px-3 py-1 rounded-full font-bold">🌿 SKINCLASH 헬스케어 리포트</span>
+                            </div>
+                            <h3 id="hero-greeting" class="text-2xl font-black mb-1">안녕하세요, 박가은님 ✨</h3>
+                            <p class="text-indigo-100 text-sm font-medium">오늘 바를 화장품들의 성분 충돌 없이 안전하고 완벽한 스킨케어 루틴을 완성해 드릴게요.</p>
+                        </div>
+                        <div class="bg-white/15 px-6 py-4 rounded-2xl backdrop-blur-md text-center border border-white/20 shrink-0 w-full md:w-auto">
+                            <p class="text-xs text-indigo-100 font-medium">오늘 루틴 이행률</p>
+                            <p class="text-3xl font-black mt-0.5">82% <span class="text-xs font-normal text-indigo-100">✨ 양호</span></p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
+                        <div class="bg-white p-6 rounded-3xl border border-indigo-100 shadow-xs">
+                            <p class="text-xs text-slate-400 font-bold uppercase">화장대 등록 제품</p>
+                            <p class="text-3xl font-black text-slate-900 mt-2">5개 <span class="text-xs text-[#5b4cf5] font-bold">안전 4</span></p>
+                        </div>
+                        <div class="bg-white p-6 rounded-3xl border border-indigo-100 shadow-xs">
+                            <p class="text-xs text-slate-400 font-bold uppercase">성분 충돌 경고</p>
+                            <p class="text-3xl font-black text-rose-500 mt-2">1건 <span class="text-xs text-rose-600 bg-rose-50 px-2 py-0.5 rounded font-bold">분리필요</span></p>
+                        </div>
+                        <div class="bg-white p-6 rounded-3xl border border-indigo-100 shadow-xs">
+                            <p class="text-xs text-slate-400 font-bold uppercase">유통기한 임박</p>
+                            <p class="text-3xl font-black text-amber-500 mt-2">1개 <span class="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded font-bold">산화주의</span></p>
+                        </div>
+                        <div class="bg-white p-6 rounded-3xl border border-indigo-100 shadow-xs">
+                            <p class="text-xs text-slate-400 font-bold uppercase">오늘 루틴 상태</p>
+                            <p class="text-xl font-bold text-slate-900 mt-2">AM 완료 <span class="text-sm font-semibold text-amber-500">/ PM 대기</span></p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-3xl border border-indigo-100 shadow-xs p-6 space-y-4">
+                        <div class="flex items-center justify-between">
+                            <h4 class="font-extrabold text-base text-slate-900 flex items-center gap-2">
+                                <span>🧴</span> 내 화장대 주요 제품 갤러리
+                            </h4>
+                            <span class="text-xs text-[#5b4cf5] font-bold cursor-pointer hover:underline" onclick="switchTab('vanity', document.querySelectorAll('.nav-btn')[1])">전체보기 &rarr;</span>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="bg-indigo-50/40 border border-indigo-100 rounded-2xl p-4 flex gap-4 items-center">
+                                <div class="w-14 h-14 bg-amber-100 rounded-2xl flex items-center justify-center text-2xl shrink-0">🍊</div>
+                                <div>
+                                    <span class="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded font-bold">AM 추천</span>
+                                    <h5 class="font-bold text-slate-800 text-sm mt-1">비타민 C 세럼</h5>
+                                    <p class="text-xs text-slate-500">순수 비타민C 15%</p>
+                                </div>
+                            </div>
+                            <div class="bg-indigo-50/40 border border-indigo-100 rounded-2xl p-4 flex gap-4 items-center">
+                                <div class="w-14 h-14 bg-indigo-100 rounded-2xl flex items-center justify-center text-2xl shrink-0">🌙</div>
+                                <div>
+                                    <span class="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded font-bold">PM 추천</span>
+                                    <h5 class="font-bold text-slate-800 text-sm mt-1">레티놀 C카 크림</h5>
+                                    <p class="text-xs text-slate-500">레티놀 0.1% 함유</p>
+                                </div>
+                            </div>
+                            <div class="bg-indigo-50/40 border border-indigo-100 rounded-2xl p-4 flex gap-4 items-center">
+                                <div class="w-14 h-14 bg-indigo-100 rounded-2xl flex items-center justify-center text-2xl shrink-0">💧</div>
+                                <div>
+                                    <span class="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded font-bold">상시 안전</span>
+                                    <h5 class="font-bold text-slate-800 text-sm mt-1">1025 독도 토너</h5>
+                                    <p class="text-xs text-slate-500">판테놀 및 수분 진정</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- [탭 2] 나의 화장대 -->
+                <div id="tab-vanity" class="tab-content hidden space-y-6">
+                    <div class="bg-white rounded-3xl border border-indigo-100 shadow-xs p-6 space-y-5">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 class="text-lg font-extrabold text-slate-900">💄 나의 화장대 제품 인벤토리</h3>
+                                <p class="text-xs text-slate-500 mt-0.5">등록된 5개 제품의 제형 및 성분 상태를 확인하세요.</p>
+                            </div>
+                            <button onclick="alert('새 화장품 등록창이 열립니다.')" class="bg-[#5b4cf5] hover:bg-indigo-700 text-white text-xs px-4 py-2.5 rounded-xl font-bold transition shadow-sm">+ 제품 추가하기</button>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div class="bg-indigo-50/30 border border-indigo-100 rounded-2xl p-5 flex flex-col justify-between space-y-4 hover:shadow-md transition">
+                                <div class="flex items-start gap-4">
+                                    <div class="w-16 h-16 bg-indigo-100 rounded-2xl flex items-center justify-center text-3xl shrink-0 shadow-xs">🌙</div>
+                                    <div class="flex-1 min-w-0">
+                                        <span class="bg-indigo-100 text-indigo-700 text-[10px] px-2 py-0.5 rounded-md font-bold">PM 저녁 추천</span>
+                                        <h4 class="font-bold text-slate-900 text-sm mt-1.5 truncate">[이니스프리] 레티놀 C카 크림</h4>
+                                        <p class="text-xs text-slate-500 mt-0.5">수분 크림 제형</p>
+                                    </div>
+                                </div>
+                                <div class="bg-white p-3 rounded-xl border border-indigo-100 text-xs text-slate-600">
+                                    <span class="font-bold text-[#5b4cf5]">주요 성분:</span> 레티놀 0.1% / 나이아신아마이드
+                                </div>
+                            </div>
+
+                            <div class="bg-indigo-50/30 border border-indigo-100 rounded-2xl p-5 flex flex-col justify-between space-y-4 hover:shadow-md transition">
+                                <div class="flex items-start gap-4">
+                                    <div class="w-16 h-16 bg-amber-100 rounded-2xl flex items-center justify-center text-3xl shrink-0 shadow-xs">🍊</div>
+                                    <div class="flex-1 min-w-0">
+                                        <span class="bg-amber-100 text-amber-700 text-[10px] px-2 py-0.5 rounded-md font-bold">AM 아침 추천</span>
+                                        <h4 class="font-bold text-slate-900 text-sm mt-1.5 truncate">[라로슈포제] 비타민 C 세럼</h4>
+                                        <p class="text-xs text-slate-500 mt-0.5">고농도 에센스 제형</p>
+                                    </div>
+                                </div>
+                                <div class="bg-white p-3 rounded-xl border border-indigo-100 text-xs text-slate-600">
+                                    <span class="font-bold text-[#5b4cf5]">주요 성분:</span> 순수 비타민 C 15%
+                                </div>
+                            </div>
+
+                            <div class="bg-indigo-50/30 border border-indigo-100 rounded-2xl p-5 flex flex-col justify-between space-y-4 hover:shadow-md transition">
+                                <div class="flex items-start gap-4">
+                                    <div class="w-16 h-16 bg-indigo-100 rounded-2xl flex items-center justify-center text-3xl shrink-0 shadow-xs">💧</div>
+                                    <div class="flex-1 min-w-0">
+                                        <span class="bg-indigo-100 text-indigo-700 text-[10px] px-2 py-0.5 rounded-md font-bold">상시 안전</span>
+                                        <h4 class="font-bold text-slate-900 text-sm mt-1.5 truncate">[라운드랩] 1025 독도 토너</h4>
+                                        <p class="text-xs text-slate-500 mt-0.5">워터 토너 제형</p>
+                                    </div>
+                                </div>
+                                <div class="bg-white p-3 rounded-xl border border-indigo-100 text-xs text-slate-600">
+                                    <span class="font-bold text-[#5b4cf5]">주요 성분:</span> 판테놀, 알란토인, 해양심층수
+                                </div>
+                            </div>
+
+                            <div class="bg-indigo-50/30 border border-indigo-100 rounded-2xl p-5 flex flex-col justify-between space-y-4 hover:shadow-md transition">
+                                <div class="flex items-start gap-4">
+                                    <div class="w-16 h-16 bg-orange-100 rounded-2xl flex items-center justify-center text-3xl shrink-0 shadow-xs">🥕</div>
+                                    <div class="flex-1 min-w-0">
+                                        <span class="bg-indigo-100 text-indigo-700 text-[10px] px-2 py-0.5 rounded-md font-bold">상시 안전</span>
+                                        <h4 class="font-bold text-slate-900 text-sm mt-1.5 truncate">[스킨푸드] 캐롯 카로틴 크림</h4>
+                                        <p class="text-xs text-slate-500 mt-0.5">보습 크림 제형</p>
+                                    </div>
+                                </div>
+                                <div class="bg-white p-3 rounded-xl border border-indigo-100 text-xs text-slate-600">
+                                    <span class="font-bold text-[#5b4cf5]">주요 성분:</span> 당근 추출물 (베타카로틴)
+                                </div>
+                            </div>
+
+                            <div class="bg-indigo-50/30 border border-indigo-100 rounded-2xl p-5 flex flex-col justify-between space-y-4 hover:shadow-md transition">
+                                <div class="flex items-start gap-4">
+                                    <div class="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center text-3xl shrink-0 shadow-xs">☀️</div>
+                                    <div class="flex-1 min-w-0">
+                                        <span class="bg-amber-100 text-amber-700 text-[10px] px-2 py-0.5 rounded-md font-bold">AM 필수 마무리</span>
+                                        <h4 class="font-bold text-slate-900 text-sm mt-1.5 truncate">[아네사] 퍼펙트 UV 선스크린</h4>
+                                        <p class="text-xs text-slate-500 mt-0.5">로션 타입</p>
+                                    </div>
+                                </div>
+                                <div class="bg-white p-3 rounded-xl border border-indigo-100 text-xs text-slate-600">
+                                    <span class="font-bold text-[#5b4cf5]">주요 성분:</span> 산화아연, 티타늄디옥사이드
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- [탭 3] 성분 교차 진단 -->
+                <div id="tab-conflict" class="tab-content hidden space-y-6">
+                    <div class="bg-white rounded-3xl border border-indigo-100 shadow-xs p-6 space-y-4">
+                        <h3 class="text-lg font-extrabold text-slate-900">⚖️ 실시간 성분 충돌 교차 진단 리포트</h3>
+                        
+                        <div class="bg-rose-50 border border-rose-200 rounded-2xl p-5 space-y-3">
+                            <span class="bg-rose-500 text-white text-xs px-2.5 py-1 rounded-lg font-bold">CRITICAL WARNING</span>
+                            <h4 class="font-bold text-rose-950 text-base">레티놀 + 비타민 C 조합 감지</h4>
+                            <p class="text-sm text-rose-700 leading-relaxed">지용성/수용성 흡수 방해 및 산도(pH) 차이로 인해 피부 자극 및 홍반을 유발할 수 있습니다.</p>
+                            <div class="bg-white p-4 rounded-2xl border border-rose-200 text-sm">
+                                <p class="font-bold text-slate-800">💡 올바른 솔루션:</p>
+                                <p class="text-slate-600 mt-1">비타민C는 아침(AM), 레티놀은 저녁(PM)으로 시간대를 분리하여 사용하세요.</p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                            <div class="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-2">
+                                <span class="text-xs bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded font-bold">주의 조합</span>
+                                <h5 class="font-bold text-slate-800">AHA/BHA + 레티놀</h5>
+                                <p class="text-xs text-slate-600 leading-relaxed">각질 제거 성분 중복으로 표피 탈락 및 극심한 과민성 피부 변화를 유발합니다. 요일별 교대(격일) 사용을 권장합니다.</p>
+                            </div>
+                            <div class="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-2">
+                                <span class="text-xs bg-indigo-100 text-indigo-800 px-2.5 py-0.5 rounded font-bold">안전 조합</span>
+                                <h5 class="font-bold text-slate-800">판테놀 + 세라마이드</h5>
+                                <p class="text-xs text-slate-600 leading-relaxed">피부 장벽 강화와 수분 진정에 완벽한 시너지를 내는 조합으로 상시 함께 사용해도 매우 안전합니다.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- [탭 4] 유통기한·산화 트래커 -->
+                <div id="tab-expiry" class="tab-content hidden space-y-6">
+                    <div class="bg-white rounded-3xl border border-indigo-100 shadow-xs p-6 space-y-4">
+                        <h3 class="text-lg font-extrabold text-slate-900">⏳ 화장품 개봉일 및 산화 관리 트래커</h3>
+                        
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between p-4 bg-amber-50 rounded-2xl border border-amber-200">
+                                <div>
+                                    <p class="font-bold text-slate-800">[라로슈포제] 비타민 C 세럼</p>
+                                    <p class="text-xs text-amber-700">개봉일: D+150일 (순수 비타민C 산화 주의 구간)</p>
+                                </div>
+                                <span class="bg-amber-500 text-white text-xs px-3 py-1 rounded-xl font-bold">임박 (D-30)</span>
+                            </div>
+                            <div class="flex items-center justify-between p-4 bg-indigo-50/30 rounded-2xl border border-indigo-100">
+                                <div>
+                                    <p class="font-bold text-slate-800">[이니스프리] 레티놀 C카 수분 크림</p>
+                                    <p class="text-xs text-slate-500">개봉일: D+45일 (안전)</p>
+                                </div>
+                                <span class="bg-indigo-100 text-indigo-700 text-xs px-3 py-1 rounded-xl font-bold">여유 (D-180)</span>
+                            </div>
+                            <div class="flex items-center justify-between p-4 bg-indigo-50/30 rounded-2xl border border-indigo-100">
+                                <div>
+                                    <p class="font-bold text-slate-800">[라운드랩] 1025 독도 토너</p>
+                                    <p class="text-xs text-slate-500">개봉일: D+20일 (최적 사용기한)</p>
+                                </div>
+                                <span class="bg-indigo-100 text-indigo-700 text-xs px-3 py-1 rounded-xl font-bold">안전 (D-220)</span>
+                            </div>
+                        </div>
+
+                        <div class="bg-indigo-50 border border-indigo-100 p-4 rounded-2xl text-xs text-indigo-950 space-y-1">
+                            <p class="font-bold">💡 스킨클래시 산화 관리 가이드</p>
+                            <p>비타민C와 레티놀 제품은 직사광선을 피해 서늘한 실온 또는 냉장 보관하시고, 개봉 후 6개월 이내에 모두 소진하는 것을 권장합니다.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- [탭 5] 네이버 날씨 기반 실시간 부산 맑음 연동 루틴 -->
+                <div id="tab-weather" class="tab-content hidden space-y-6">
+                    <div id="weather-banner" class="indigo-purple-gradient rounded-3xl p-6 text-white shadow-sm space-y-3 transition-all duration-500">
+                        <div class="flex items-center justify-between">
+                            <h3 id="weather-title" class="text-base font-bold flex items-center gap-2"><span>☀️</span> 부산광역시 실시간 기상 연동 (현재 기온: 16.1°C / 맑음)</h3>
+                            <span id="weather-badge" class="bg-white/20 px-3 py-1 rounded-full text-xs font-bold">자동 감지: 맑음 (습도 67%)</span>
+                        </div>
+                        <p id="weather-desc" class="text-sm text-indigo-100 leading-relaxed">
+                            현재 부산 지역은 맑고 쾌적한 날씨이나 자외선 및 일조량이 감지됩니다. 항산화 케어 및 자외선 차단 선케어 루틴으로 자동 변환되었습니다.
+                        </p>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white rounded-3xl border border-indigo-100 shadow-xs p-6 space-y-4">
+                            <div class="flex items-center justify-between border-b border-indigo-50 pb-3">
+                                <h4 id="routine-am-title" class="font-extrabold text-sm text-[#5b4cf5] flex items-center gap-2">
+                                    <span>☀️</span> 맑은 날 AM 아침 루틴 [항산화 & 선케어]
+                                </h4>
+                                <span class="text-xs bg-indigo-50 text-[#5b4cf5] px-2.5 py-1 rounded-full font-bold">자외선 방어</span>
+                            </div>
+                            <div class="space-y-3 text-sm">
+                                <div class="p-3 bg-indigo-50/30 rounded-2xl border border-indigo-100 flex items-center justify-between">
+                                    <div>
+                                        <span class="text-xs font-bold text-[#5b4cf5]">STEP 1</span>
+                                        <p id="am-step1" class="font-bold text-slate-800">저자극 약산성 폼</p>
+                                    </div>
+                                    <span class="text-xs text-slate-400">노폐물 정돈</span>
+                                </div>
+                                <div class="p-3 bg-indigo-50/60 rounded-2xl border border-indigo-200 flex items-center justify-between">
+                                    <div>
+                                        <span class="text-xs font-bold text-[#5b4cf5]">STEP 2 (핵심)</span>
+                                        <p id="am-step2" class="font-bold text-slate-800">라로슈포제 비타민 C 세럼</p>
+                                    </div>
+                                    <span class="text-xs bg-indigo-200 text-indigo-900 px-2 py-0.5 rounded font-bold">항산화 케어</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-3xl border border-indigo-100 shadow-xs p-6 space-y-4">
+                            <div class="flex items-center justify-between border-b border-indigo-50 pb-3">
+                                <h4 id="routine-pm-title" class="font-extrabold text-sm text-[#7c4dff] flex items-center gap-2">
+                                    <span>🌙</span> 맑은 날 PM 저녁 루틴 [애프터썬 진정]
+                                </h4>
+                                <span class="text-xs bg-indigo-50 text-[#7c4dff] px-2.5 py-1 rounded-full font-bold">수분 쿨링</span>
+                            </div>
+                            <div class="space-y-3 text-sm">
+                                <div class="p-3 bg-indigo-50/30 rounded-2xl border border-indigo-100 flex items-center justify-between">
+                                    <div>
+                                        <span class="text-xs font-bold text-[#7c4dff]">STEP 1</span>
+                                        <p id="pm-step1" class="font-bold text-slate-800">알로에 수분 쿨링 팩</p>
+                                    </div>
+                                    <span class="text-xs text-slate-400">열감 진정</span>
+                                </div>
+                                <div class="p-3 bg-indigo-50/60 rounded-2xl border border-indigo-200 flex items-center justify-between">
+                                    <div>
+                                        <span class="text-xs font-bold text-[#7c4dff]">STEP 2 (핵심)</span>
+                                        <p id="pm-step2" class="font-bold text-slate-800">시카 진정 수분 크림</p>
+                                    </div>
+                                    <span class="text-xs bg-indigo-200 text-indigo-900 px-2 py-0.5 rounded font-bold">장벽 보호</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- [탭 6] AI 피부 챗봇 문의 -->
+                <div id="tab-chat" class="tab-content hidden space-y-6">
+                    <div class="bg-white rounded-3xl border border-indigo-100 shadow-xs p-6 space-y-4">
+                        <div class="flex items-center justify-between border-b border-indigo-50 pb-3">
+                            <div>
+                                <h3 class="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+                                    <span>💬</span> SkinClash AI 뷰티 어드바이저 문의
+                                </h3>
+                                <p class="text-xs text-slate-500 mt-0.5">화장품 성분 상극, 레이어링 방법, 피부 고민을 무엇이든 물어보세요!</p>
+                            </div>
+                            <span class="bg-indigo-100 text-[#5b4cf5] text-xs px-3 py-1 rounded-xl font-bold">AI Online</span>
+                        </div>
+
+                        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 h-80 overflow-y-auto space-y-4 text-sm">
+                            <div class="flex items-start gap-3">
+                                <div class="w-8 h-8 rounded-full bg-[#5b4cf5] text-white flex items-center justify-center font-bold text-xs shrink-0">AI</div>
+                                <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs max-w-lg text-slate-700">
+                                    안녕하세요 박가은님! 스킨클래시 AI 어드바이저입니다. 등록하신 제품 간 레티놀과 비타민C 상극이 감지되었는데, 혹시 다른 제품 조합에 대해서도 궁금한 점이 있으신가요?
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-3 justify-end">
+                                <div class="bg-[#5b4cf5] text-white p-3.5 rounded-2xl shadow-xs max-w-lg">
+                                    레티놀 제품 바를 때 수분크림이랑 같이 섞어 발라도 되나요?
+                                </div>
+                                <div class="w-8 h-8 rounded-full bg-slate-300 text-slate-700 flex items-center justify-center font-bold text-xs shrink-0">가은</div>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <div class="w-8 h-8 rounded-full bg-[#5b4cf5] text-white flex items-center justify-center font-bold text-xs shrink-0">AI</div>
+                                <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs max-w-lg text-slate-700">
+                                    네! 레티놀 처음 사용 시 자극을 줄이기 위해 수분크림과 1:1로 섞어 바르거나(샌드위치 법), 수분크림을 먼저 바른 뒤 도포하는 방법이 아주 효과적입니다. 추가로 궁금한 성분이 있으신가요?
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex gap-2">
+                            <input type="text" placeholder="궁금한 화장품 성분이나 피부 고민을 입력하세요..." class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#5b4cf5]">
+                            <button onclick="alert('메시지가 전송되었습니다. AI가 답변을 생성합니다!')" class="bg-[#5b4cf5] hover:bg-indigo-700 text-white px-6 py-3 rounded-xl text-sm font-bold shadow-sm transition">
+                                전송하기
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- 로그인 모달창 -->
+    <div id="login-modal" class="fixed inset-0 bg-slate-950/50 backdrop-blur-xs hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-3xl max-w-md w-full p-7 border border-indigo-100 shadow-2xl space-y-5">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="w-8 h-8 rounded-xl bg-[#5b4cf5] text-white flex items-center justify-center font-black text-xs">SC</span>
+                    <span class="text-xs font-extrabold bg-indigo-50 text-[#5b4cf5] px-3 py-1 rounded-full">SkinClash 대시보드 로그인</span>
+                </div>
+                <button onclick="closeLoginModal()" class="text-slate-400 hover:text-slate-700 font-bold text-xl leading-none">&times;</button>
+            </div>
+
+            <div class="space-y-1">
+                <h3 class="text-xl font-black text-slate-900">다시 오신 것을 환영해요</h3>
+                <p class="text-xs text-slate-500">로그인하면 내 화장대 인벤토리와 스킨케어 루틴 기록이 동기화됩니다.</p>
+            </div>
+
+            <form onsubmit="submitDashboardLogin(event)" class="space-y-3.5">
+                <div class="space-y-1">
+                    <label for="dash-login-email" class="block text-xs font-bold text-slate-700">이메일</label>
+                    <input
+                        id="dash-login-email"
+                        type="email"
+                        required
+                        placeholder="gaeun@example.com"
+                        class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 focus:outline-none focus:border-[#5b4cf5] focus:bg-white transition"
+                    >
+                </div>
+
+                <div class="space-y-1">
+                    <label for="dash-login-password" class="block text-xs font-bold text-slate-700">비밀번호</label>
+                    <input
+                        id="dash-login-password"
+                        type="password"
+                        required
+                        placeholder="비밀번호를 입력하세요"
+                        class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 focus:outline-none focus:border-[#5b4cf5] focus:bg-white transition"
+                    >
+                </div>
+
+                <div id="dash-login-feedback" class="hidden rounded-2xl p-3 text-xs font-bold bg-indigo-50 text-indigo-900 border border-indigo-200"></div>
+
+                <button type="submit" class="w-full bg-[#5b4cf5] hover:bg-indigo-700 text-white text-sm font-bold py-3.5 rounded-2xl shadow-md shadow-indigo-600/20 transition">
+                    로그인하기
+                </button>
+            </form>
+
+            <div class="relative flex items-center justify-center">
+                <div class="border-t border-slate-200 w-full"></div>
+                <span class="bg-white px-3 text-[11px] font-semibold text-slate-400 shrink-0">또는</span>
+                <div class="border-t border-slate-200 w-full"></div>
+            </div>
+
+            <button type="button" onclick="quickDashboardDemoLogin()" class="w-full bg-indigo-50 hover:bg-indigo-100 text-[#5b4cf5] text-xs font-extrabold py-3 rounded-2xl border border-indigo-200 transition">
+                박가은 데모 계정으로 바로 로그인
+            </button>
+        </div>
+    </div>
+
+    <!-- 스크립트 -->
+    <script>
+        function openLoginModal() {
+            const m = document.getElementById('login-modal');
+            document.getElementById('dash-login-feedback').classList.add('hidden');
+            m.classList.remove('hidden');
+            m.classList.add('flex');
+        }
+
+        function closeLoginModal() {
+            const m = document.getElementById('login-modal');
+            m.classList.add('hidden');
+            m.classList.remove('flex');
+        }
+
+        function applyDashboardLoginState(nameText) {
+            document.getElementById('header-login-btn').classList.add('hidden');
+            const badge = document.getElementById('header-user-badge');
+            document.getElementById('header-user-name').innerText = nameText;
+            badge.classList.remove('hidden');
+            badge.classList.add('flex');
+
+            document.getElementById('sidebar-user-name').innerText = nameText;
+            document.getElementById('sidebar-user-status').innerText = '로그인됨 · 민감성 / 3년차 유저';
+            document.getElementById('hero-greeting').innerText = `안녕하세요, ${nameText} ✨`;
+        }
+
+        function submitDashboardLogin(event) {
+            event.preventDefault();
+            const email = document.getElementById('dash-login-email').value.trim();
+            const namePart = `${email.split('@')[0] || '사용자'}님`;
+            const feedback = document.getElementById('dash-login-feedback');
+            feedback.innerText = `${namePart}, 로그인되었습니다!`;
+            feedback.classList.remove('hidden');
+
+            setTimeout(() => {
+                applyDashboardLoginState(namePart);
+                closeLoginModal();
+            }, 500);
+        }
+
+        function quickDashboardDemoLogin() {
+            const feedback = document.getElementById('dash-login-feedback');
+            feedback.innerText = '박가은 데모 계정으로 로그인되었습니다!';
+            feedback.classList.remove('hidden');
+
+            setTimeout(() => {
+                applyDashboardLoginState('박가은님');
+                closeLoginModal();
+            }, 450);
+        }
+
+        function logoutUser() {
+            const badge = document.getElementById('header-user-badge');
+            badge.classList.add('hidden');
+            badge.classList.remove('flex');
+            document.getElementById('header-login-btn').classList.remove('hidden');
+            document.getElementById('sidebar-user-status').innerText = '게스트 모드 · 민감성 / 3년차 유저';
+        }
+
+        function switchTab(tabId, btnElement) {
+            document.querySelectorAll('.tab-content').forEach(el => {
+                el.classList.add('hidden');
+            });
+            document.getElementById('tab-' + tabId).classList.remove('hidden');
+
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.className = "nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-600 hover:bg-indigo-50 font-semibold transition";
+            });
+            btnElement.className = "nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-[#5b4cf5] text-white font-bold shadow-sm shadow-indigo-600/20 transition";
+
+            const titles = {
+                'home': '홈 대시보드',
+                'vanity': '나의 화장대 인벤토리',
+                'conflict': '성분 교차 진단 리포트',
+                'expiry': '유통기한 및 산화 트래커',
+                'weather': '날씨 연동 AM/PM 루틴',
+                'chat': 'AI 피부 챗봇 문의'
+            };
+            document.getElementById('header-title').innerText = titles[tabId];
+
+            if (tabId === 'weather') {
+                startSunnyEffect();
+            } else {
+                stopWeatherEffect();
+            }
+        }
+
+        const canvas = document.getElementById('weather-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        let animationFrameId;
+
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+        }
+
+        class SunParticle {
+            constructor() {
+                this.reset();
+            }
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * -canvas.height;
+                this.radius = Math.random() * 3 + 1;
+                this.speed = Math.random() * 1.5 + 0.5;
+                this.opacity = Math.random() * 0.7 + 0.3;
+                this.vx = Math.random() * 1 - 0.5;
+            }
+            update() {
+                this.y += this.speed;
+                this.x += this.vx;
+                if (this.y > canvas.height) this.reset();
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.fillStyle = `rgba(124, 77, 255, ${this.opacity})`;
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function startSunnyEffect() {
+            canvas.style.display = 'block';
+            resizeCanvas();
+            particles = [];
+            for (let i = 0; i < 80; i++) {
+                particles.push(new SunParticle());
+            }
+            if (!animationFrameId) animateSun();
+        }
+
+        function animateSun() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => { p.update(); p.draw(); });
+            animationFrameId = requestAnimationFrame(animateSun);
+        }
+
+        function stopWeatherEffect() {
+            canvas.style.display = 'none';
+            cancelAnimationFrame(animationFrameId);
+            animationFrameId = null;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        window.addEventListener('resize', () => {
+            if (canvas.style.display === 'block') resizeCanvas();
+        });
+    </script>
+</body>
+</html>
